@@ -5,10 +5,77 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from detect_R import *
 from evaluate import *
+import configargparse
 
+parser = configargparse.ArgumentParser(description='Realtime R peak detection and diagnosis based on Pan-Tompkins algorithm')
 
-# 基础设定
-fs = 200
+parser.add_argument('-c', '--config', required=False, is_config_file=True, help='Path to config file.')
+
+# 基本参数
+parser.add_argument('--fs', type=int, default=200, help='sampling frequency of the data')
+
+# 可视化参数
+parser.add_argument('--visible', action='store_true', help='whether to visualize the detection process and result')
+parser.add_argument('--show_result', action='store_true', help='whether to show the final result')
+parser.add_argument('--normal_color', type=str, default='green', help='color to display normal heart rate')
+parser.add_argument('--tachycardia_color', type=str, default='red', help='color to display tachycardia')
+parser.add_argument('--bradycardia_color', type=str, default='blue', help='color to display bradycardia')
+
+# 可变参数
+parser.add_argument('--QRS_for_bpm', type=int, default=9, help='number of QRS for bpm calculation')
+parser.add_argument('--n_overlap', type=int, default=5, help='overlap data number for each round of real-time peak detection')
+parser.add_argument('--chunk_size', type=int, default=100, help='number of data points for each round of real-time peak detection')
+
+# 预处理参数
+parser.add_argument('--lc', type=float, default=6.5, help='lower cutoff frequency for high-pass filter for preprocessing')
+parser.add_argument('--hc', type=float, default=22, help='higher cutoff frequency for low-pass filter for preprocessing')
+parser.add_argument('--order', type=int, default=5, help='order of the filter for proprocessing')
+parser.add_argument('--wl', type=int, default=31, help='window length for moving average for preprocessing')
+
+# 阈值迭代参数
+parser.add_argument('--param_N', type=float, default=0.75, help='Pan-Tompkins algorithm parameter, see README for details')
+parser.add_argument('--param_T', type=float, default=0.5, help='Pan-Tompkins algorithm parameter, see README for details')
+parser.add_argument('--thr_T', type=int, default=46, help='Pan-Tompkins algorithm parameter, see README for details')
+parser.add_argument('--iter_peak', type=float, default=0.125, help='Pan-Tompkins algorithm parameter, see README for details')
+parser.add_argument('--iter_re_peak', type=float, default=0.25, help='Pan-Tompkins algorithm parameter, see README for details')
+parser.add_argument('--thr_T_quotient', type=float, default=0.25, help='Pan-Tompkins algorithm parameter, see README for details')
+
+# 早搏诊断参数
+parser.add_argument('--thr_width', type=float, default=0.3, help='premature beat diagnosis, see README for details')
+parser.add_argument('--thr_quotient', type=float, default=1.5, help='premature beat diagnosis, see README for details')
+
+parser.add_argument('--result_path', type=str, default='result.xlsx', help='the path to save the result for detection evaluation')
+
+args = parser.parse_args()
+
+fs = args.fs
+
+visible = args.visible
+show_result = args.show_result
+normal_color = args.normal_color
+tachycardia_color = args.tachycardia_color
+bradycardia_color = args.bradycardia_color
+
+QRS_for_bpm = args.QRS_for_bpm
+n_overlap = args.n_overlap
+chunk_size = args.chunk_size
+lc = args.lc
+hc = args.hc
+order = args.order
+wl = args.wl
+param_N = args.param_N
+param_S = 1 - param_N
+param_T = args.param_T
+iter_peak = args.iter_peak
+iter_NS = 1 - iter_peak
+iter_re_peak = args.iter_re_peak
+iter_re_NS = 1 - iter_re_peak
+thr_T = args.thr_T
+thr_T_quotient = args.thr_T_quotient
+thr_width = args.thr_width
+thr_quotient = args.thr_quotient
+result_path = args.result_path
+
 
 accuracy = np.zeros(12)
 sensitivity = np.zeros(12)
@@ -22,46 +89,18 @@ fn_all = np.zeros(12)
 premature_tp_all = np.zeros(12)
 premature_fp_all = np.zeros(12)
 premature_fn_all = np.zeros(12)
-
-colors = {
-    "Normal": "green",
-    "Tachycardia": "red",
-    "Bradycardia": "blue",
-    "None": "white"
-}
-visible = True
-show_result = True
-
-
-# 可变参数
-QRS_for_bpm = 9
-n_overlap = 5
-chunk_size = 100
-
-## 预处理部分
-lc = 6.5
 f1_mean = np.array([])
 f1_outlier_free_mean = np.array([])
-hc = 22
-order = 5
-wl = 31
 
-## 阈值迭代参数
-param_N = 0.75
-param_S = 1 - param_N
-param_T = 0.5
-iter_peak = 0.125
-iter_NS = 1 - iter_peak
-iter_re_peak = 0.25
-iter_re_NS = 1 - iter_re_peak
 
-## 排除T波参数
-thr_T = 46
-thr_T_quotient = 0.25
+# 可视化设置
+colors = {
+    "Normal": normal_color,
+    "Tachycardia": tachycardia_color,
+    "Bradycardia": bradycardia_color,
+    "None": "white"
+}
 
-## 心率诊断参数
-thr_width = 0.3
-thr_quotient = 1.5
 
 def calculate_heart_rate(QRS,fs=200):
     global Normal, Tachycardia, Bradycardia
@@ -435,4 +474,4 @@ df = pd.DataFrame({
     'Premature F1': f1_premature
 })
 
-df.to_excel('result.xlsx', index=False)
+df.to_excel(result_path, index=False)
