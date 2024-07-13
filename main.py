@@ -17,7 +17,7 @@ parser.add_argument('--data_path', type=str, default='data', help='index of the 
 
 # 可视化参数
 parser.add_argument('--visible', action='store_true', help='whether to visualize the detection process and result')
-parser.add_argument('--show_result', action='store_true', help='whether to show the final result')
+parser.add_argument('--save_result', action='store_true', help='whether to save the final result')
 parser.add_argument('--evaluate', action='store_true', help='whether to evaluate the detection result')
 parser.add_argument('--normal_color', type=str, default='green', help='color to display normal heart rate')
 parser.add_argument('--tachycardia_color', type=str, default='red', help='color to display tachycardia')
@@ -56,7 +56,7 @@ data_path = args.data_path
 data_idxs = [int(i.split('.')[0]) for i in os.listdir(data_path) if i.endswith('.txt')]
 
 visible = args.visible
-show_result = args.show_result
+save_result = args.save_result
 evaluate = args.evaluate
 normal_color = args.normal_color
 tachycardia_color = args.tachycardia_color
@@ -102,7 +102,7 @@ if evaluate:
     f1_mean = np.array([])
     f1_outlier_free_mean = np.array([])
 
-if evaluate or show_result:
+if evaluate or save_result:
     os.makedirs(result_path, exist_ok=True)
     # 可视化设置
     colors = {
@@ -188,7 +188,7 @@ for data_idx in tqdm(data_idxs):
     data_all = np.squeeze(data_all)
 
 
-    if visible or show_result:
+    if visible or save_result:
         # 可视化设定
         fig, ax = plt.subplots(figsize=(40, 6))
         y_min = np.min(data_all) - 0.1
@@ -381,7 +381,7 @@ for data_idx in tqdm(data_idxs):
 
         ax.text(0.95, 0.98, text, horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
 
-    if visible or show_result:
+    if visible or save_result:
         if Bradycardia:
             Bradycardia.merge_overlaps()
             for i in Bradycardia:
@@ -429,7 +429,7 @@ for data_idx in tqdm(data_idxs):
         f1_premature[data_idx-1] = 2 * premature_accuracy[data_idx-1] * premature_sensitivity[data_idx-1] / (premature_accuracy[data_idx-1] + premature_sensitivity[data_idx-1])
 
 
-    if show_result:
+    if save_result:
         ax.set_xlim([0, len(data_all)/fs])
         ax.set_ylim([y_min, y_max])
         ax.plot(np.arange(0,len(data_all))/fs, data_all, color='blue', linestyle='-', linewidth=1.5, label='ECG signal')

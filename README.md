@@ -16,7 +16,7 @@ git clone https://github.com/zjl21/Realtime-ECG-QRS-detection-and-diagnosis.git
 
 ### Add your data
 
-Organize your data into a txt file and place it in the `data` folder, when referred to "your data idx" below, it means the part before the .txt. 
+Organize your data into a txt file and place it in a folder, the path can be designated as you run the code.
 
 There are 10 demo data currently in the `data` folder.
 
@@ -25,13 +25,13 @@ There are 10 demo data currently in the `data` folder.
 There are three modes of operation:
 
 1. **Mode 1:** See the realtime detection process, run
-```python main.py --config config.ini --visualize --data_idx "your data idx"```
+```python main.py --config config.ini --visualize --data_path "your data path"```
 2. **Mode 2:** See the result for each detection, run
-```python main.py --config config.ini --show_result --data_idx "your data idx"``` 
+```python main.py --config config.ini --show_result --data_path "your data path"``` 
 3. **Mode 3:** Evaluate the accuracy in comparison with the reference dataset, run
-```python main.py --evaluate --data_idx "your data idx"```
+```python main.py --evaluate --data_path data```
 
-When using Mode 3, don't forget to put the corresponding annotation file to the `reference` folder, the mapping can be changed in `evaluate.py`.
+When using Mode 3, don't forget to put the corresponding annotation file to the `reference` folder, the mapping can be changed in `evaluate.py`. I have the annotation data so just try it for my demo data.
 
 Three modes can be used simultaneously.
 
