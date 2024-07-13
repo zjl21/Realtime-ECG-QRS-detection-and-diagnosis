@@ -53,7 +53,10 @@ For more detailed information, please refer to [my experiment report](./实验�
 
 The result for the 10 demo data is shown as below.
 
-The orange dots stand for the QRS peaks, the part of different colors show the normal heart rate, tachycardia and bradycardia in green, red and blue. You can also change the color in config file.
+- The orange dots stand for the QRS peaks.
+- The part of different colors show the normal heart rate, tachycardia and bradycardia in green, red and blue. You can also change the color in config file.
+- The red triangle refers to the premature beat.
+
 
 ![result 1](./output/1.png)
 ![result 2](./output/2.png)
