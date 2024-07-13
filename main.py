@@ -13,10 +13,12 @@ parser.add_argument('-c', '--config', required=False, is_config_file=True, help=
 
 # 基本参数
 parser.add_argument('--fs', type=int, default=200, help='sampling frequency of the data')
+parser.add_argument('--data_idx', type=int, nargs='+', required=True, help='index of the data to be processed')
 
 # 可视化参数
 parser.add_argument('--visible', action='store_true', help='whether to visualize the detection process and result')
 parser.add_argument('--show_result', action='store_true', help='whether to show the final result')
+parser.add_argument('--evaluate', action='store_true', help='whether to evaluate the detection result')
 parser.add_argument('--normal_color', type=str, default='green', help='color to display normal heart rate')
 parser.add_argument('--tachycardia_color', type=str, default='red', help='color to display tachycardia')
 parser.add_argument('--bradycardia_color', type=str, default='blue', help='color to display bradycardia')
@@ -44,14 +46,17 @@ parser.add_argument('--thr_T_quotient', type=float, default=0.25, help='Pan-Tomp
 parser.add_argument('--thr_width', type=float, default=0.3, help='premature beat diagnosis, see README for details')
 parser.add_argument('--thr_quotient', type=float, default=1.5, help='premature beat diagnosis, see README for details')
 
-parser.add_argument('--result_path', type=str, default='result.xlsx', help='the path to save the result for detection evaluation')
+parser.add_argument('--eval_result_path', type=str, default='result.xlsx', help='the path to save the result for detection evaluation')
+parser.add_argument('--result_path', type=str, default='output', help='the folder path to save the result for detection')
 
 args = parser.parse_args()
 
 fs = args.fs
+data_idxs = args.data_idx
 
 visible = args.visible
 show_result = args.show_result
+evaluate = args.evaluate
 normal_color = args.normal_color
 tachycardia_color = args.tachycardia_color
 bradycardia_color = args.bradycardia_color
@@ -74,32 +79,37 @@ thr_T = args.thr_T
 thr_T_quotient = args.thr_T_quotient
 thr_width = args.thr_width
 thr_quotient = args.thr_quotient
+eval_result_path = args.eval_result_path
 result_path = args.result_path
 
 
-accuracy = np.zeros(12)
-sensitivity = np.zeros(12)
-premature_accuracy = np.zeros(12)
-premature_sensitivity = np.zeros(12)
-f1 = np.zeros(12)
-f1_premature = np.zeros(12)
-tp_all = np.zeros(12)
-fp_all = np.zeros(12)
-fn_all = np.zeros(12)
-premature_tp_all = np.zeros(12)
-premature_fp_all = np.zeros(12)
-premature_fn_all = np.zeros(12)
-f1_mean = np.array([])
-f1_outlier_free_mean = np.array([])
 
+if evaluate:
+    tmp_num = len(data_idxs)+2
+    accuracy = np.zeros(tmp_num)
+    sensitivity = np.zeros(tmp_num)
+    premature_accuracy = np.zeros(tmp_num)
+    premature_sensitivity = np.zeros(tmp_num)
+    f1 = np.zeros(tmp_num)
+    f1_premature = np.zeros(tmp_num)
+    tp_all = np.zeros(tmp_num)
+    fp_all = np.zeros(tmp_num)
+    fn_all = np.zeros(tmp_num)
+    premature_tp_all = np.zeros(tmp_num)
+    premature_fp_all = np.zeros(tmp_num)
+    premature_fn_all = np.zeros(tmp_num)
+    f1_mean = np.array([])
+    f1_outlier_free_mean = np.array([])
 
-# 可视化设置
-colors = {
-    "Normal": normal_color,
-    "Tachycardia": tachycardia_color,
-    "Bradycardia": bradycardia_color,
-    "None": "white"
-}
+if evaluate or show_result:
+    os.makedirs(result_path, exist_ok=True)
+    # 可视化设置
+    colors = {
+        "Normal": normal_color,
+        "Tachycardia": tachycardia_color,
+        "Bradycardia": bradycardia_color,
+        "None": "white"
+    }
 
 
 def calculate_heart_rate(QRS,fs=200):
@@ -152,7 +162,7 @@ def calculate_width(QRS):
     return width
 
 
-for data_idx in tqdm(range(1, 11)):
+for data_idx in tqdm(data_idxs):
     # 初始化
     data_size_previous = fs * 8
     data_all = np.array([])
@@ -395,25 +405,27 @@ for data_idx in tqdm(range(1, 11)):
                 ax.fill_between(Normal_range/fs, y_min * np.ones_like(Normal_range), y_max * np.ones_like(Normal_range), color=colors["Normal"],alpha=0.2)
 
     predict = QRS_old / fs
-    truth,V_truth,A_truth = read_annot(data_idx)
-    premature_truth = np.concatenate((V_truth,A_truth))
-    tp, fp, fn = compare_annot(truth, predict)
-    tp_all[data_idx-1] = tp
-    fp_all[data_idx-1] = fp
-    fn_all[data_idx-1] = fn
-    premature_predict = np.array(premature)/fs
-    premature_tp, premature_fp, premature_fn = compare_annot(premature_truth, premature_predict)
-    premature_tp_all[data_idx-1] = premature_tp
-    premature_fp_all[data_idx-1] = premature_fp
-    premature_fn_all[data_idx-1] = premature_fn
 
-    accuracy[data_idx-1] = np.divide(np.float64(tp), np.float64(tp + fp), out=np.full_like(tp, np.nan, dtype=np.float64), where=(tp+fp)!=0)
-    sensitivity[data_idx-1] = np.divide(np.float64(tp), np.float64(tp + fn), out=np.full_like(tp, np.nan, dtype=np.float64), where=(tp+fn)!=0)
-    premature_accuracy[data_idx-1] = np.divide(np.float64(premature_tp), np.float64(premature_tp + premature_fp), out=np.full_like(premature_tp, np.nan, dtype=np.float64), where=(premature_tp+premature_fp)!=0)
-    premature_sensitivity[data_idx-1] = np.divide(np.float64(premature_tp), np.float64(premature_tp + premature_fn), out=np.full_like(premature_tp, np.nan, dtype=np.float64), where=(premature_tp+premature_fn)!=0)
+    if evaluate:
+        truth,V_truth,A_truth = read_annot(data_idx)
+        premature_truth = np.concatenate((V_truth,A_truth))
+        tp, fp, fn = compare_annot(truth, predict)
+        tp_all[data_idx-1] = tp
+        fp_all[data_idx-1] = fp
+        fn_all[data_idx-1] = fn
+        premature_predict = np.array(premature)/fs
+        premature_tp, premature_fp, premature_fn = compare_annot(premature_truth, premature_predict)
+        premature_tp_all[data_idx-1] = premature_tp
+        premature_fp_all[data_idx-1] = premature_fp
+        premature_fn_all[data_idx-1] = premature_fn
 
-    f1[data_idx-1] = 2 * accuracy[data_idx-1] * sensitivity[data_idx-1] / (accuracy[data_idx-1] + sensitivity[data_idx-1])
-    f1_premature[data_idx-1] = 2 * premature_accuracy[data_idx-1] * premature_sensitivity[data_idx-1] / (premature_accuracy[data_idx-1] + premature_sensitivity[data_idx-1])
+        accuracy[data_idx-1] = np.divide(np.float64(tp), np.float64(tp + fp), out=np.full_like(tp, np.nan, dtype=np.float64), where=(tp+fp)!=0)
+        sensitivity[data_idx-1] = np.divide(np.float64(tp), np.float64(tp + fn), out=np.full_like(tp, np.nan, dtype=np.float64), where=(tp+fn)!=0)
+        premature_accuracy[data_idx-1] = np.divide(np.float64(premature_tp), np.float64(premature_tp + premature_fp), out=np.full_like(premature_tp, np.nan, dtype=np.float64), where=(premature_tp+premature_fp)!=0)
+        premature_sensitivity[data_idx-1] = np.divide(np.float64(premature_tp), np.float64(premature_tp + premature_fn), out=np.full_like(premature_tp, np.nan, dtype=np.float64), where=(premature_tp+premature_fn)!=0)
+
+        f1[data_idx-1] = 2 * accuracy[data_idx-1] * sensitivity[data_idx-1] / (accuracy[data_idx-1] + sensitivity[data_idx-1])
+        f1_premature[data_idx-1] = 2 * premature_accuracy[data_idx-1] * premature_sensitivity[data_idx-1] / (premature_accuracy[data_idx-1] + premature_sensitivity[data_idx-1])
 
 
     if show_result:
@@ -424,6 +436,7 @@ for data_idx in tqdm(range(1, 11)):
         for i in premature:
             ax.scatter(i/fs, y_max-0.1, s=50, marker='^', color='red')
         ax.text(0.95, 0.98, text, horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+        plt.savefig(os.path.join(result_path, f'{data_idx}.png'))
         plt.show(block=False)
         plt.pause(5)
         plt.close()
@@ -435,43 +448,44 @@ for data_idx in tqdm(range(1, 11)):
         plt.pause(1)
         plt.close()
 
-tp_all[10] = np.sum(tp_all)
-fp_all[10] = np.sum(fp_all)
-fn_all[10] = np.sum(fn_all)
-tp_all[11] = tp_all[10] - tp_all[3]
-fp_all[11] = fp_all[10] - fp_all[3]
-fn_all[11] = fn_all[10] - fn_all[3]
+if evaluate:
+    tp_all[10] = np.sum(tp_all)
+    fp_all[10] = np.sum(fp_all)
+    fn_all[10] = np.sum(fn_all)
+    tp_all[11] = tp_all[10] - tp_all[3]
+    fp_all[11] = fp_all[10] - fp_all[3]
+    fn_all[11] = fn_all[10] - fn_all[3]
 
-premature_tp_all[10] = np.sum(premature_tp_all)
-premature_fp_all[10] = np.sum(premature_fp_all)
-premature_fn_all[10] = np.sum(premature_fn_all)
-premature_tp_all[11] = premature_tp_all[10] - premature_tp_all[3]
-premature_fp_all[11] = premature_fp_all[10] - premature_fp_all[3]
-premature_fn_all[11] = premature_fn_all[10] - premature_fn_all[3]
+    premature_tp_all[10] = np.sum(premature_tp_all)
+    premature_fp_all[10] = np.sum(premature_fp_all)
+    premature_fn_all[10] = np.sum(premature_fn_all)
+    premature_tp_all[11] = premature_tp_all[10] - premature_tp_all[3]
+    premature_fp_all[11] = premature_fp_all[10] - premature_fp_all[3]
+    premature_fn_all[11] = premature_fn_all[10] - premature_fn_all[3]
 
-accuracy = np.divide(tp_all, tp_all + fp_all, out=np.full_like(tp_all, np.nan, dtype=np.float64), where=(tp_all+fp_all)!=0)
-sensitivity = np.divide(tp_all, tp_all + fn_all, out=np.full_like(tp_all, np.nan, dtype=np.float64), where=(tp_all+fn_all)!=0)
-premature_accuracy = np.divide(premature_tp_all, premature_tp_all + premature_fp_all, out=np.full_like(premature_tp_all, np.nan, dtype=np.float64), where=(premature_tp_all+premature_fp_all)!=0)
-premature_sensitivity = np.divide(premature_tp_all, premature_tp_all + premature_fn_all, out=np.full_like(premature_tp_all, np.nan, dtype=np.float64), where=(premature_tp_all+premature_fn_all)!=0)
+    accuracy = np.divide(tp_all, tp_all + fp_all, out=np.full_like(tp_all, np.nan, dtype=np.float64), where=(tp_all+fp_all)!=0)
+    sensitivity = np.divide(tp_all, tp_all + fn_all, out=np.full_like(tp_all, np.nan, dtype=np.float64), where=(tp_all+fn_all)!=0)
+    premature_accuracy = np.divide(premature_tp_all, premature_tp_all + premature_fp_all, out=np.full_like(premature_tp_all, np.nan, dtype=np.float64), where=(premature_tp_all+premature_fp_all)!=0)
+    premature_sensitivity = np.divide(premature_tp_all, premature_tp_all + premature_fn_all, out=np.full_like(premature_tp_all, np.nan, dtype=np.float64), where=(premature_tp_all+premature_fn_all)!=0)
 
-f1 = 2 * accuracy * sensitivity / (accuracy + sensitivity)
-f1_premature = 2 * premature_accuracy * premature_sensitivity / (premature_accuracy + premature_sensitivity)
+    f1 = 2 * accuracy * sensitivity / (accuracy + sensitivity)
+    f1_premature = 2 * premature_accuracy * premature_sensitivity / (premature_accuracy + premature_sensitivity)
 
-# 存入excel
-df = pd.DataFrame({
-    'idx':np.concatenate((np.arange(1,11).astype(str),['all','outlier_free'])),
-    'TP': tp_all,
-    'FP': fp_all,
-    'FN': fn_all,
-    'Accuracy': accuracy,
-    'Sensitivity': sensitivity,
-    'F1': f1,
-    'Premature TP': premature_tp_all,
-    'Premature FP': premature_fp_all,
-    'Premature FN': premature_fn_all,
-    'Premature Accuracy': premature_accuracy,
-    'Premature Sensitivity': premature_sensitivity,
-    'Premature F1': f1_premature
-})
+    # 存入excel
+    df = pd.DataFrame({
+        'idx':np.concatenate((np.arange(1,11).astype(str),['all','outlier_free'])),
+        'TP': tp_all,
+        'FP': fp_all,
+        'FN': fn_all,
+        'Accuracy': accuracy,
+        'Sensitivity': sensitivity,
+        'F1': f1,
+        'Premature TP': premature_tp_all,
+        'Premature FP': premature_fp_all,
+        'Premature FN': premature_fn_all,
+        'Premature Accuracy': premature_accuracy,
+        'Premature Sensitivity': premature_sensitivity,
+        'Premature F1': f1_premature
+    })
 
-df.to_excel(result_path, index=False)
+    df.to_excel(eval_result_path, index=False)
