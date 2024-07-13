@@ -55,16 +55,16 @@ The result for the 10 demo data is shown as below.
 
 The orange dots stand for the QRS peaks, the part of different colors show the normal heart rate, tachycardia and bradycardia in green, red and blue. You can also change the color in config file.
 
-![result 1](./实验报告/predict1.png)
-![result 2](./实验报告/predict2.png)
-![result 3](./实验报告/predict3.png)
-![result 4](./实验报告/predict4.png)
-![result 5](./实验报告/predict5.png)
-![result 6](./实验报告/predict6.png)
-![result 7](./实验报告/predict7.png)
-![result 8](./实验报告/predict8.png)
-![result 9](./实验报告/predict9.png)
-![result 10](./实验报告/predict10.png)
+![result 1](./output/1.png)
+![result 2](./output/2.png)
+![result 3](./output/3.png)
+![result 4](./output/4.png)
+![result 5](./output/5.png)
+![result 6](./output/6.png)
+![result 7](./output/7.png)
+![result 8](./output/8.png)
+![result 9](./output/9.png)
+![result 10](./output/10.png)
 
 ## Limitations
 
