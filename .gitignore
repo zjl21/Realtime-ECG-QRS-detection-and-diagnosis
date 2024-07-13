@@ -1,18 +1,18 @@
 /__pycache__
 /.vscode
 /心电检测大作业_郑佳兰_2021012136
-/实验报告/*
-! /实验报告/生物医学电子学大作业_郑佳兰_2021012136.pdf
-! /实验报告/predict1.png
-! /实验报告/predict2.png
-! /实验报告/predict3.png
-! /实验报告/predict4.png
-! /实验报告/predict5.png
-! /实验报告/predict6.png
-! /实验报告/predict7.png
-! /实验报告/predict8.png
-! /实验报告/predict9.png
-! /实验报告/predict10.png
+/实验报告
+!/实验报告/生物医学电子学大作业_郑佳兰_2021012136.pdf
+!/实验报告/predict1.png
+!/实验报告/predict2.png
+!/实验报告/predict3.png
+!/实验报告/predict4.png
+!/实验报告/predict5.png
+!/实验报告/predict6.png
+!/实验报告/predict7.png
+!/实验报告/predict8.png
+!/实验报告/predict9.png
+!/实验报告/predict10.png
 /心电检测大作业_郑佳兰_2021012136.zip
 /A_simple_real-time_QRS_detection_algorithm.pdf
 /best_param.ipynb
@@ -22,4 +22,3 @@
 /read_annot.ipynb
 /result_test.xlsx
 /result.xlsx
-/output
