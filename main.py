@@ -13,7 +13,7 @@ parser.add_argument('-c', '--config', required=False, is_config_file=True, help=
 
 # 基本参数
 parser.add_argument('--fs', type=int, default=200, help='sampling frequency of the data')
-parser.add_argument('--data_idx', type=int, nargs='+', required=True, help='index of the data to be processed')
+parser.add_argument('--data_path', type=str, default='data', help='index of the data to be processed')
 
 # 可视化参数
 parser.add_argument('--visible', action='store_true', help='whether to visualize the detection process and result')
@@ -52,7 +52,8 @@ parser.add_argument('--result_path', type=str, default='output', help='the folde
 args = parser.parse_args()
 
 fs = args.fs
-data_idxs = args.data_idx
+data_path = args.data_path
+data_idxs = [int(i.split('.')[0]) for i in os.listdir(data_path) if i.endswith('.txt')]
 
 visible = args.visible
 show_result = args.show_result
@@ -194,9 +195,9 @@ for data_idx in tqdm(data_idxs):
         y_max = np.max(data_all) + 0.2
         ax.set_xlim([0, len(data_all)/fs])
         ax.set_ylim([np.min(data_all), np.max(data_all)])
-        ax.set_xlabel('Time(s)')
-        ax.set_ylabel('Amplitude')
-        ax.set_title(f'R peak detection for data {data_idx}')
+        ax.set_xlabel('Time(s)', fontsize=20)
+        ax.set_ylabel('Amplitude', fontsize=20)
+        ax.set_title(f'R peak detection for data {data_idx}', fontsize=28)
         ax.autoscale(enable=False)
 
 
@@ -432,14 +433,17 @@ for data_idx in tqdm(data_idxs):
         ax.set_xlim([0, len(data_all)/fs])
         ax.set_ylim([y_min, y_max])
         ax.plot(np.arange(0,len(data_all))/fs, data_all, color='blue', linestyle='-', linewidth=1.5, label='ECG signal')
-        ax.scatter(QRS_old/fs, data_all[QRS_old], s=50, marker='o', color='orange')
+        ax.scatter(QRS_old/fs, data_all[QRS_old], s=80, marker='o', color='orange')
         for i in premature:
             ax.scatter(i/fs, y_max-0.1, s=50, marker='^', color='red')
-        ax.text(0.95, 0.98, text, horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+        ax.text(0.96, 0.95, text, horizontalalignment='center', verticalalignment='center', transform=ax.transAxes, fontsize=20)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
+        plt.tight_layout()
         plt.savefig(os.path.join(result_path, f'{data_idx}.png'))
-        plt.show(block=False)
-        plt.pause(5)
-        plt.close()
+        # plt.show(block=False)
+        # plt.pause(5)
+        # plt.close()
 
         
 
